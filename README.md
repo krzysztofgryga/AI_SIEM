@@ -85,6 +85,7 @@ response = monitored.client.chat.completions.create(...)
 
 ## 📖 Documentation
 
+- **[Flow Diagram](FLOW_DIAGRAM.md)** - System architecture and data flow
 - **[Quick Start Guide](poc/QUICKSTART.md)** - 5-minute setup
 - **[Docker Guide](poc/DOCKER_QUICKSTART.md)** - Docker in 2 minutes
 - **[Complete Documentation](poc/README.md)** - Full reference
