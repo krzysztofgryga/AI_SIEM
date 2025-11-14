@@ -1,6 +1,135 @@
 # 🔄 AI SIEM - Flow Diagram
 
+## 🏗️ Przegląd Architektury
+
+AI SIEM oferuje **dwa tryby działania**:
+
+1. **Direct Monitoring Mode** (Podstawowy) - Bezpośrednie przechwytywanie wywołań API
+2. **MPC Gateway Mode** (Zaawansowany) - Inteligentny routing przez MPC Server z wbudowanym monitoringiem
+
+### Architektura Zunifikowana
+
+```mermaid
+flowchart TB
+    subgraph Apps["🎯 Application Layer"]
+        App1[Web App]
+        App2[Mobile App]
+        App3[Service/API]
+        App4[CLI Tool]
+    end
+
+    subgraph Gateway["🚪 Gateway Layer (Optional)"]
+        MPC[MPC Server<br/>Intelligent Gateway]
+
+        subgraph MPCFeatures["MPC Features"]
+            Validate[Request Validation]
+            Auth[Authentication & Authorization]
+            PIICheck[PII Detection]
+            Router[Intelligent Routing]
+            AuditLog[Audit Logging]
+        end
+    end
+
+    subgraph Direct["📡 Direct API Access"]
+        OpenAI[OpenAI API]
+        Anthropic[Anthropic API]
+        Gemini[Gemini API]
+        Ollama[Ollama Local]
+    end
+
+    subgraph Backends["⚙️ Processing Backends (via MPC)"]
+        LLM_Large[LLM Large<br/>GPT-4, Claude]
+        LLM_Small[LLM Small<br/>Local Models]
+        Rules[Rule Engine<br/>Regex, Classifiers]
+        Hybrid[Hybrid<br/>Rules + LLM]
+    end
+
+    subgraph Monitoring["🔍 SIEM Monitoring Layer"]
+        Collectors[Collectors<br/>API Interception]
+        EventProc[EventProcessor<br/>Security Analysis]
+        AnomalyDet[AnomalyDetector<br/>Threat Detection]
+        Storage[EventStorage<br/>SQLite Database]
+        Dashboard[CLI Dashboard<br/>Visualization]
+    end
+
+    %% Direct Mode Flow
+    App1 & App2 & App3 & App4 -.->|Direct Mode| OpenAI & Anthropic & Gemini & Ollama
+    OpenAI & Anthropic & Gemini & Ollama --> Collectors
+
+    %% MPC Gateway Mode Flow
+    App1 & App2 & App3 & App4 -->|Gateway Mode<br/>via MPCClient| MPC
+    MPC --> Validate --> Auth --> PIICheck --> Router --> AuditLog
+    Router --> LLM_Large & LLM_Small & Rules & Hybrid
+    LLM_Large & LLM_Small & Rules & Hybrid --> Collectors
+
+    %% Monitoring Pipeline
+    Collectors --> EventProc --> AnomalyDet --> Storage --> Dashboard
+
+    style Apps fill:#e1f5ff
+    style Gateway fill:#fff3e0
+    style Direct fill:#f3e5f5
+    style Backends fill:#e8f5e9
+    style Monitoring fill:#fce4ec
+```
+
+### Tryb 1: Direct Monitoring Mode
+
+**Zastosowanie:** Monitorowanie istniejących aplikacji bez zmian w kodzie
+
+```
+Application → Direct API Call → LLM Provider
+                      ↓
+              Collectors (Interceptors)
+                      ↓
+              SIEM Monitoring Pipeline
+```
+
+**Cechy:**
+- ✅ Zero zmian w kodzie aplikacji (monkey patching)
+- ✅ Szybkie wdrożenie
+- ✅ Monitoring wszystkich providerów
+- ⚠️ Brak kontroli przed wywołaniem API
+- ⚠️ Brak inteligentnego routingu
+
+### Tryb 2: MPC Gateway Mode
+
+**Zastosowanie:** Nowe aplikacje wymagające zaawansowanej kontroli i optymalizacji
+
+```
+Application → MPCClient → MPC Server → Intelligent Routing → Backend
+                              ↓
+                      SIEM Monitoring Pipeline
+```
+
+**Cechy:**
+- ✅ Kontrola przed wykonaniem (validation, auth, PII blocking)
+- ✅ Inteligentny routing (cost optimization, fallback)
+- ✅ Centralizowana polityka bezpieczeństwa
+- ✅ Multi-tenant support
+- ⚠️ Wymaga integracji z MPCClient
+
+### Porównanie Trybów
+
+| Cecha | Direct Mode | MPC Gateway Mode |
+|-------|-------------|------------------|
+| **Integracja** | Zero-code (wrapper) | MPCClient integration |
+| **Kontrola przed wywołaniem** | ❌ | ✅ |
+| **Inteligentny routing** | ❌ | ✅ (cost, latency, capability) |
+| **Cost optimization** | Post-factum | Pre-execution |
+| **PII handling** | Detection only | Detection + Blocking + Routing |
+| **Authorization** | ❌ | ✅ (JWT, RBAC/ABAC) |
+| **Audit logging** | Event-based | Request + Response |
+| **Multi-provider** | ✅ | ✅ |
+| **Monitoring** | ✅ Full SIEM | ✅ Full SIEM |
+| **Best for** | Legacy apps, quick deploy | New apps, enterprise |
+
+---
+
 ## 📊 Diagram Przepływu Danych
+
+### Direct Monitoring Mode - Szczegółowy Flow
+
+Ten diagram przedstawia **Direct Monitoring Mode** - podstawowy tryb monitorowania z bezpośrednim przechwytywaniem API calls.
 
 ```mermaid
 flowchart TB
@@ -298,7 +427,240 @@ flowchart TB
     Export --> CSV[CSV Export]
 ```
 
+---
+
+## 🚪 MPC Gateway Mode - Szczegółowy Flow
+
+### Architektura z MPC Server
+
+Ten diagram przedstawia **MPC Gateway Mode** - zaawansowany tryb z inteligentnym routingiem i kontrolą przed wykonaniem.
+
+```mermaid
+flowchart TB
+    subgraph Application["🎯 Application Layer"]
+        App[Application<br/>with MPCClient]
+    end
+
+    subgraph MPC["🚪 MPC Server (Gateway)"]
+        Request[Receive MPCRequest]
+        Validate[Schema Validation]
+        Auth[Authentication<br/>JWT Token]
+        Authz[Authorization<br/>RBAC/ABAC]
+        PIIDet[PII Detection]
+        PIIRoute[PII Routing Check]
+        Router[Intelligent Router]
+        Audit[Audit Logger]
+    end
+
+    subgraph Processing["⚙️ Processing Layer"]
+        LLM_Large[LLM Large<br/>OpenAI GPT-4<br/>Anthropic Claude]
+        LLM_Private[LLM Private<br/>Ollama<br/>Local Models]
+        RuleEngine[Rule Engine<br/>Regex<br/>Classifiers]
+        HybridProc[Hybrid Backend<br/>Rules → LLM Fallback]
+    end
+
+    subgraph SIEM["🔍 SIEM Monitoring"]
+        Collector[Collectors<br/>Embedded in MPC]
+        EventGen[Event Generation]
+        EventProc[EventProcessor<br/>Security Analysis]
+        AnomalyDet[AnomalyDetector]
+        Storage[EventStorage]
+        Dashboard[CLI Dashboard]
+    end
+
+    %% Main Flow
+    App -->|MPCRequest| Request
+    Request --> Validate
+    Validate -->|Valid| Auth
+    Auth -->|Authenticated| Authz
+
+    Authz -->|Authorized| PIIDet
+    PIIDet --> PIIRoute
+
+    PIIRoute -->|No PII or Safe| Router
+    PIIRoute -->|PII + Cloud Backend| Blocked[❌ BLOCKED]
+
+    Router -->|capability: text_gen<br/>cost: optimize| LLM_Large
+    Router -->|capability: text_gen<br/>sensitivity: pii| LLM_Private
+    Router -->|capability: classification<br/>cost: free| RuleEngine
+    Router -->|capability: auto<br/>use_cascade: true| HybridProc
+
+    LLM_Large & LLM_Private & RuleEngine & HybridProc -->|Response| Collector
+    Collector --> EventGen --> EventProc --> AnomalyDet --> Storage --> Dashboard
+
+    Collector -->|MPCResponse| App
+
+    %% Error Flows
+    Validate -->|Invalid| Error1[Error Response]
+    Auth -->|Failed| Error2[Error Response]
+    Authz -->|Denied| Error3[Error Response]
+
+    Error1 & Error2 & Error3 --> Audit
+    Blocked --> Audit
+
+    style Application fill:#e1f5ff
+    style MPC fill:#fff3e0
+    style Processing fill:#e8f5e9
+    style SIEM fill:#fce4ec
+    style Blocked fill:#ffebee,stroke:#c62828,stroke-width:3px
+```
+
+### Sequence Diagram: MPC Gateway Request
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Client as MPCClient
+    participant MPC as MPC Server
+    participant Auth as Auth Service
+    participant PII as PII Detector
+    participant Router as Intelligent Router
+    participant Backend as Processing Backend
+    participant SIEM as SIEM Monitoring
+
+    App->>Client: process(prompt, sensitivity, hints)
+    Client->>Client: Build MPCRequest
+    Client->>MPC: Send MPCRequest (HTTP/gRPC)
+
+    Note over MPC: Validation Phase
+    MPC->>MPC: Validate schema
+    alt Invalid Schema
+        MPC-->>Client: Error: Invalid Request
+    end
+
+    Note over MPC: Authentication Phase
+    MPC->>Auth: Authenticate JWT token
+    Auth-->>MPC: Principal
+    alt Authentication Failed
+        MPC-->>Client: Error: Unauthorized
+    end
+
+    Note over MPC: Authorization Phase
+    MPC->>Auth: Authorize action
+    Auth-->>MPC: Authorized/Denied
+    alt Authorization Denied
+        MPC-->>Client: Error: Forbidden
+    end
+
+    Note over MPC: Security Phase
+    MPC->>PII: Detect PII in prompt
+    PII-->>MPC: PIIResult (has_pii, types)
+
+    alt PII + Cloud Backend
+        MPC-->>Client: Error: PII routing blocked
+    end
+
+    Note over MPC: Routing Phase
+    MPC->>Router: Route request
+    Router->>Router: Evaluate candidates<br/>- Capability match<br/>- Cost constraints<br/>- Latency SLA<br/>- Sensitivity rules
+    Router-->>MPC: Backend decision + fallbacks
+
+    Note over MPC: Processing Phase
+    MPC->>Backend: Forward request
+    Backend-->>MPC: Result + metadata
+
+    alt Processing Failed & Fallback Available
+        MPC->>Backend: Retry with fallback
+        Backend-->>MPC: Result
+    end
+
+    Note over MPC: Monitoring Phase
+    MPC->>SIEM: Emit AIEvent
+    SIEM->>SIEM: Process event<br/>- Security analysis<br/>- Anomaly detection<br/>- Storage
+
+    alt Anomalies Detected
+        SIEM-->>App: 🚨 Alert
+    end
+
+    Note over MPC: Response Phase
+    MPC->>MPC: Build MPCResponse
+    MPC->>MPC: Audit log
+    MPC-->>Client: MPCResponse
+    Client-->>App: Result
+```
+
+### MPC Gateway Features
+
+#### 1. Pre-execution Control
+
+**Validation:**
+```python
+# Schema validation before processing
+validate_payload(request.payload_schema, request.payload)
+```
+
+**Authorization:**
+```python
+# RBAC/ABAC before execution
+is_authorized = access_control.authorize(
+    principal,
+    action="process",
+    resource_attributes={
+        'sensitivity': request.config.sensitivity,
+        'estimated_cost': 0.01
+    }
+)
+```
+
+#### 2. Intelligent Routing
+
+**Capability-based:**
+```python
+# Route based on task type
+router.route(
+    capability=CapabilityType.TEXT_GENERATION,
+    sensitivity=SensitivityLevel.INTERNAL
+)
+# → selects best backend for text generation
+```
+
+**Cost-optimized:**
+```python
+# Minimize cost while meeting SLA
+router.select_backend(
+    max_cost=0.1,
+    max_latency_ms=5000,
+    min_confidence=0.8
+)
+# → cheapest option that meets requirements
+```
+
+**Cascade with fallback:**
+```python
+# Try cheap → expensive
+cascade = ['rules', 'llama2', 'gpt-3.5', 'gpt-4']
+for backend in cascade:
+    result = process(backend)
+    if result.confidence >= threshold:
+        return result  # Success!
+```
+
+#### 3. PII-aware Routing
+
+```python
+# Block PII from going to cloud
+pii_result = pii_detector.detect(prompt)
+if pii_result.has_pii and backend.is_cloud:
+    raise SecurityError("PII detected, cloud backend not allowed")
+
+# Auto-route to private model
+if pii_result.has_sensitive_pii:
+    backend = router.select_private_backend()
+```
+
+#### 4. Embedded SIEM Monitoring
+
+**Every request monitored:**
+- Pre-execution: validation, auth, PII detection
+- During execution: latency, tokens, cost
+- Post-execution: security analysis, anomaly detection
+- Storage: full audit trail in EventStorage
+
+---
+
 ## 🎯 Kluczowe Komponenty
+
+### Direct Mode Components
 
 ### Collectors (collector.py, local_collector.py)
 - **Rola**: Przechwytywanie wywołań API
