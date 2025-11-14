@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Ollama - Local LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-monitoring-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ai-monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Uncomment for GPU support (NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # AI Monitoring POC
+  ai-monitoring:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-monitoring-poc
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    environment:
+      - DATABASE_PATH=/app/data/ai_monitoring.db
+      # Local LLM endpoints
+      - OLLAMA_HOST=http://ollama:11434
+      - LOCALAI_HOST=http://localai:8080
+      - LM_STUDIO_HOST=http://host.docker.internal:1234
+    networks:
+      - ai-monitoring
+    depends_on:
+      - ollama
+    command: tail -f /dev/null  # Keep container running for interactive use
+
+  # LocalAI - Alternative local LLM server
+  localai:
+    image: quay.io/go-skynet/local-ai:latest
+    container_name: ai-monitoring-localai
+    ports:
+      - "8080:8080"
+    volumes:
+      - localai_models:/models
+    environment:
+      - THREADS=4
+      - CONTEXT_SIZE=2048
+    networks:
+      - ai-monitoring
+    profiles:
+      - localai  # Optional service, start with: docker-compose --profile localai up
+
+  # SQLite Web UI (optional, for browsing database)
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: ai-monitoring-sqlite-web
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - SQLITE_DATABASE=/data/ai_monitoring.db
+    networks:
+      - ai-monitoring
+    profiles:
+      - ui  # Optional service
+
+networks:
+  ai-monitoring:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  localai_models:
