@@ -8,7 +8,7 @@ from rich.table import Table
 from rich.panel import Panel
 
 from local_collector import OllamaCollector, LMStudioCollector, LocalAICollector
-from collector import OpenAICollector, AnthropicCollector
+from collector import OpenAICollector, AnthropicCollector, GeminiCollector
 from processor import EventProcessor
 from storage import EventStorage
 from analyzer import AnomalyDetector
@@ -173,6 +173,34 @@ class LLMTester:
             console.print(f"[red]✗ Anthropic failed: {e}[/red]")
             return False
 
+    async def test_gemini(self):
+        """Test Google Gemini."""
+        if not os.getenv('GOOGLE_API_KEY'):
+            console.print("[yellow]⊘ Google API key not set, skipping[/yellow]")
+            return False
+
+        console.print("\n[cyan]Testing Google Gemini...[/cyan]")
+
+        try:
+            import google.generativeai as genai
+
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+            model = genai.GenerativeModel('gemini-pro')
+
+            collector = GeminiCollector(
+                model,
+                event_handler=self.handle_event
+            )
+
+            collector.model.generate_content("What is 2+2?")
+
+            console.print("[green]✓ Google Gemini working[/green]")
+            return True
+
+        except Exception as e:
+            console.print(f"[red]✗ Google Gemini failed: {e}[/red]")
+            return False
+
     def print_results(self):
         """Print comparison table."""
         if not self.results:
@@ -246,6 +274,7 @@ async def main():
     await tester.test_localai()
     await tester.test_openai()
     await tester.test_anthropic()
+    await tester.test_gemini()
 
     # Wait for async processing
     await asyncio.sleep(1)

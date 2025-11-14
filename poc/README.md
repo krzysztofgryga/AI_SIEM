@@ -10,6 +10,7 @@ Minimalny system monitoringu agentów AI skupiony na 3 kluczowych krokach:
 ### Zbieranie Danych
 - ✅ Automatyczne przechwytywanie wywołań OpenAI API
 - ✅ Automatyczne przechwytywanie wywołań Anthropic API
+- ✅ Automatyczne przechwytywanie wywołań Google Gemini API
 - ✅ Pomiar latencji i kosztów
 - ✅ Liczenie tokenów
 
@@ -203,11 +204,12 @@ python cli.py risks           # Zdarzenia wysokiego ryzyka
 ```
 poc/
 ├── models.py           # Modele danych (Pydantic)
-├── collector.py        # Interceptory dla OpenAI/Anthropic
+├── collector.py        # Interceptory dla OpenAI/Anthropic/Gemini
 ├── processor.py        # Przetwarzanie i normalizacja
 ├── analyzer.py         # Wykrywanie anomalii
 ├── storage.py          # SQLite storage
 ├── main.py            # Główny przykład użycia
+├── gemini_example.py  # Przykład z Google Gemini
 ├── cli.py             # CLI do przeglądania danych
 ├── requirements.txt   # Zależności
 ├── .env.example       # Przykładowa konfiguracja
@@ -216,8 +218,8 @@ poc/
 
 ## 🎓 Najważniejsze Klasy
 
-### `OpenAICollector` / `AnthropicCollector`
-Wrapper dla API klientów - automatycznie przechwytuje wywołania.
+### `OpenAICollector` / `AnthropicCollector` / `GeminiCollector`
+Wrapper dla API klientów - automatycznie przechwytuje wywołania dla OpenAI, Anthropic i Google Gemini.
 
 ### `EventProcessor`
 Przetwarza zdarzenia:

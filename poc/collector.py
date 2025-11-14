@@ -332,3 +332,159 @@ class AnthropicCollector(BaseCollector):
         completion_cost = (tokens.completion_tokens / 1000) * model_pricing['completion']
 
         return prompt_cost + completion_cost
+
+
+class GeminiCollector(BaseCollector):
+    """
+    Google Gemini API collector - wraps Google GenerativeAI client.
+
+    Usage:
+        import google.generativeai as genai
+        genai.configure(api_key="YOUR_API_KEY")
+        model = genai.GenerativeModel('gemini-pro')
+        monitored_model = GeminiCollector(model, event_handler=my_handler)
+        response = monitored_model.generate_content("Your prompt here")
+    """
+
+    def __init__(self, gemini_model, event_handler=None, user_id: Optional[str] = None):
+        super().__init__(event_handler)
+        self.model = gemini_model
+        self.user_id = user_id
+        self.session_id = str(uuid.uuid4())
+
+        # Wrap the generate_content method
+        self._wrap_generate_content()
+
+    def _wrap_generate_content(self):
+        """Wrap Gemini generate_content method."""
+        original_generate = self.model.generate_content
+
+        def monitored_generate(*args, **kwargs):
+            return self._monitored_generate_content(original_generate, *args, **kwargs)
+
+        self.model.generate_content = monitored_generate
+
+    def _monitored_generate_content(self, original_func, *args, **kwargs):
+        """Monitor a content generation call."""
+        event_id = str(uuid.uuid4())
+        start_time = time.time()
+
+        # Extract request data
+        prompt = args[0] if args else kwargs.get('contents', '')
+        if isinstance(prompt, list):
+            prompt = "\n".join([str(p) for p in prompt])
+        elif not isinstance(prompt, str):
+            prompt = str(prompt)
+
+        model_name = self.model.model_name if hasattr(self.model, 'model_name') else 'gemini-pro'
+
+        try:
+            # Call original function
+            response = original_func(*args, **kwargs)
+
+            # Calculate metrics
+            latency_ms = (time.time() - start_time) * 1000
+
+            # Extract response data
+            content = response.text if hasattr(response, 'text') else str(response)
+
+            # Token usage - Gemini provides usage metadata
+            tokens = TokenUsage(
+                prompt_tokens=response.usage_metadata.prompt_token_count if hasattr(response, 'usage_metadata') else 0,
+                completion_tokens=response.usage_metadata.candidates_token_count if hasattr(response, 'usage_metadata') else 0,
+                total_tokens=response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 0
+            )
+
+            # Calculate cost
+            cost_usd = self._calculate_gemini_cost(model_name, tokens)
+
+            # Create event
+            event = AIEvent(
+                id=event_id,
+                event_type=EventType.RESPONSE,
+                timestamp=datetime.utcnow(),
+                provider=Provider.GOOGLE,
+                model=model_name,
+                prompt=prompt,
+                prompt_length=len(prompt),
+                response=content,
+                response_length=len(content),
+                latency_ms=latency_ms,
+                tokens=tokens,
+                cost_usd=cost_usd,
+                success=True,
+                user_id=self.user_id,
+                session_id=self.session_id,
+                metadata={
+                    'finish_reason': response.candidates[0].finish_reason.name if response.candidates else None,
+                    'safety_ratings': [
+                        {
+                            'category': rating.category.name,
+                            'probability': rating.probability.name
+                        }
+                        for rating in response.candidates[0].safety_ratings
+                    ] if response.candidates else []
+                }
+            )
+
+            try:
+                loop = asyncio.get_event_loop()
+                loop.create_task(self.emit_event(event))
+            except RuntimeError:
+                if self.event_handler:
+                    self.event_handler(event)
+
+            return response
+
+        except Exception as e:
+            latency_ms = (time.time() - start_time) * 1000
+
+            event = AIEvent(
+                id=event_id,
+                event_type=EventType.ERROR,
+                timestamp=datetime.utcnow(),
+                provider=Provider.GOOGLE,
+                model=model_name,
+                prompt=prompt,
+                prompt_length=len(prompt),
+                latency_ms=latency_ms,
+                success=False,
+                error_message=str(e),
+                risk_level=RiskLevel.HIGH,
+                user_id=self.user_id,
+                session_id=self.session_id
+            )
+
+            try:
+                loop = asyncio.get_event_loop()
+                loop.create_task(self.emit_event(event))
+            except RuntimeError:
+                if self.event_handler:
+                    self.event_handler(event)
+
+            raise
+
+    def _calculate_gemini_cost(self, model: str, tokens: TokenUsage) -> float:
+        """Calculate cost based on model and tokens."""
+        # Gemini pricing (as of 2024)
+        # Gemini Pro is free for up to 60 requests per minute
+        # Gemini Pro 1.5 pricing varies
+        pricing = {
+            'gemini-1.5-pro': {'prompt': 0.00125, 'completion': 0.005},  # Per 1K tokens
+            'gemini-1.5-flash': {'prompt': 0.000075, 'completion': 0.0003},
+            'gemini-pro': {'prompt': 0.0005, 'completion': 0.0015},  # Free tier available
+        }
+
+        model_pricing = None
+        for key in pricing:
+            if key in model.lower():
+                model_pricing = pricing[key]
+                break
+
+        if not model_pricing:
+            model_pricing = pricing['gemini-pro']  # default
+
+        prompt_cost = (tokens.prompt_tokens / 1000) * model_pricing['prompt']
+        completion_cost = (tokens.completion_tokens / 1000) * model_pricing['completion']
+
+        return prompt_cost + completion_cost

@@ -17,6 +17,7 @@ class EventType(str, Enum):
 class Provider(str, Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    GOOGLE = "google"
     CUSTOM = "custom"
 
 

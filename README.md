@@ -6,7 +6,7 @@
 
 **Complete monitoring, security, and cost tracking system for AI agents and LLMs.**
 
-Monitor OpenAI, Anthropic, Ollama, LM Studio, and any other LLM with:
+Monitor OpenAI, Anthropic, Google Gemini, Ollama, LM Studio, and any other LLM with:
 - 🔒 Security threat detection (PII, prompt injection)
 - 💰 Real-time cost tracking and anomaly detection
 - 📊 Performance monitoring (latency, tokens, errors)
@@ -62,6 +62,7 @@ make cli     # View dashboard
 **Cloud APIs:**
 - OpenAI (GPT-3.5, GPT-4, etc.)
 - Anthropic (Claude 3 models)
+- Google (Gemini Pro, Gemini 1.5, etc.)
 
 **Local LLMs (FREE!):**
 - Ollama (llama2, mistral, etc.)
