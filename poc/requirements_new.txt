@@ -1,0 +1,30 @@
+# AI SIEM - 3-Layer Architecture Requirements
+
+# Core dependencies (existing)
+pydantic>=2.0.0
+rich>=13.0.0
+sqlalchemy>=2.0.0
+
+# New dependencies for 3-layer architecture
+
+# Authentication & Security
+pyjwt>=2.8.0                 # JWT token management
+cryptography>=41.0.0         # Encryption utilities
+
+# HTTP Client (for async requests)
+httpx>=0.25.0               # Async HTTP client
+
+# Optional: OpenAI (if using OpenAI backend)
+openai>=1.0.0               # OpenAI API client
+
+# Optional: Anthropic (if using Anthropic backend)
+anthropic>=0.7.0            # Anthropic API client
+
+# Optional: Google (if using Gemini backend)
+google-generativeai>=0.3.0  # Google Generative AI
+
+# Development dependencies
+pytest>=7.0.0               # Testing
+pytest-asyncio>=0.21.0      # Async testing
+black>=23.0.0               # Code formatting
+mypy>=1.0.0                 # Type checking
