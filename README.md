@@ -1,368 +1,571 @@
 # 🤖 AI Agent Security Monitoring Platform
 
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
+[![Architecture](https://img.shields.io/badge/architecture-3--layer-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Complete monitoring, security, and cost tracking system for AI agents and LLMs.**
+**Modular, enterprise-grade monitoring and security system for AI agents and LLMs.**
 
-Monitor OpenAI, Anthropic, Google Gemini, Ollama, LM Studio, and any other LLM with:
-- 🔒 Security threat detection (PII, prompt injection)
-- 💰 Real-time cost tracking and anomaly detection
-- 📊 Performance monitoring (latency, tokens, errors)
-- 🐳 Docker-ready deployment
-- 💻 **Works 100% locally - NO API keys required!**
+Complete 3-layer architecture with centralized routing, PII detection, cost optimization, and audit logging:
+- 🏗️ **3-Layer Architecture**: Application → Collection → Processing
+- 🔒 **Enterprise Security**: JWT auth, PII detection, RBAC, audit logs
+- 💰 **Cost Optimization**: Intelligent routing, rule engines, cascade strategies
+- 📊 **Full Observability**: Anomaly detection, metrics, dashboards
+- 🎯 **No Direct Ingest**: All requests through centralized MPC gateway
 
 ---
 
-## ⚡ Quick Start (2 Minutes)
+## ⚡ Quick Start (5 Minutes)
 
 ```bash
+# Clone repository
 git clone https://github.com/krzysztofgryga/AI_SIEM.git
-cd AI_SIEM/poc
-make setup
+cd AI_SIEM
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run basic example
+python examples/basic_usage.py
 ```
 
-**Done!** 🎉 You now have:
-- ✅ Ollama running (local LLM server)
-- ✅ Monitoring active
-- ✅ Example model downloaded
-- ✅ Database initialized
+**That's it!** 🎉 You've just:
+- ✅ Created an MPC client
+- ✅ Sent a query through the gateway
+- ✅ Got a secure, monitored response
 
-Test it:
+View more examples:
 ```bash
-make test    # Run example
-make cli     # View dashboard
+python examples/secure_usage.py       # Security features
+python examples/batch_processing.py   # Batch processing
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     YOUR APPLICATIONS                           │
+│  (Web apps, APIs, CLI tools, microservices)                    │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  APPLICATION LAYER                              │
+│                                                                 │
+│  components/application-layer/                                 │
+│  ├── client.py              (MPCClient, SimpleMPCClient)       │
+│  └── example_usage.py       (Usage examples)                   │
+│                                                                 │
+│  Provides client interface for applications                    │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  COLLECTION LAYER (MPC Server)                  │
+│                                                                 │
+│  components/collection-layer/                                  │
+│  ├── server.py              (MPC Server - main orchestrator)   │
+│  └── router.py              (Intelligent routing)              │
+│                                                                 │
+│  ✓ Request validation                                          │
+│  ✓ Authentication (JWT) & Authorization (RBAC)                 │
+│  ✓ PII detection & routing                                     │
+│  ✓ Intelligent backend selection                               │
+│  ✓ Cost & latency optimization                                 │
+│  ✓ Audit logging                                               │
+└─────────────────────────────────────────────────────────────────┘
+                           │
+                    ┌──────┴──────┐
+                    ▼             ▼
+         ┌──────────────────────────────────────┐
+         │   PROCESSING LAYER                   │
+         │                                      │
+         │   components/processing-layer/       │
+         │   └── backends.py                    │
+         │                                      │
+         │   ┌─────────────────────────────┐   │
+         │   │  Rule Engines               │   │
+         │   │  • Classification           │   │
+         │   │  • Extraction               │   │
+         │   │  • Validation               │   │
+         │   │  Cost: $0, Latency: <10ms   │   │
+         │   └─────────────────────────────┘   │
+         │                                      │
+         │   ┌─────────────────────────────┐   │
+         │   │  LLM Backends               │   │
+         │   │  • OpenAI (GPT-3.5, GPT-4)  │   │
+         │   │  • Anthropic (Claude)       │   │
+         │   │  • Google (Gemini)          │   │
+         │   │  • Local (Ollama, LM Studio)│   │
+         │   └─────────────────────────────┘   │
+         │                                      │
+         └──────────────────────────────────────┘
+                           │
+                           ▼
+         ┌──────────────────────────────────────┐
+         │   STORAGE & ANALYSIS LAYER           │
+         │                                      │
+         │   components/storage-layer/          │
+         │   ├── storage.py  (EventStorage)     │
+         │   └── analyzer.py (AnomalyDetector)  │
+         │                                      │
+         │   ✓ Event persistence (SQLite)       │
+         │   ✓ Anomaly detection                │
+         │   ✓ Metrics aggregation              │
+         │   ✓ Reports & analytics              │
+         └──────────────────────────────────────┘
+                           │
+                           ▼
+         ┌──────────────────────────────────────┐
+         │   TOOLS & DASHBOARDS                 │
+         │                                      │
+         │   tools/                             │
+         │   └── cli.py  (CLI Dashboard)        │
+         │                                      │
+         │   ✓ Real-time monitoring             │
+         │   ✓ Statistics & reports             │
+         │   ✓ Event browsing                   │
+         └──────────────────────────────────────┘
+```
+
+### 🔑 Key Difference: No Direct Ingest
+
+**❌ OLD (Direct Ingest - REMOVED):**
+```python
+# Application directly wraps LLM client
+client = OpenAI()
+monitored = OpenAICollector(client)  # ❌ Direct ingest
+response = monitored.client.chat.completions.create(...)
+```
+
+**✅ NEW (Centralized Gateway):**
+```python
+# Application uses MPC Client → everything goes through gateway
+client = SimpleMPCClient()  # ✅ Through gateway
+response = await client.ask("Question")
+# → MPC Server validates, authenticates, routes, audits
 ```
 
 ---
 
 ## 🌟 Features
 
-### 🔐 Security Monitoring
-- **PII Detection**: Automatically detect emails, phone numbers, SSN, credit cards
-- **Prompt Injection Detection**: Pattern matching + semantic analysis
-- **Risk Scoring**: Multi-factor risk assessment for every request
-- **Real-time Alerts**: Console alerts for critical security events
+### 🔐 Enterprise Security
 
-### 💰 Cost Management
-- **Real-time Cost Tracking**: Per-request and aggregate costs
-- **Cost Anomaly Detection**: Detect cost spikes (3x average)
-- **Budget Monitoring**: Track spending vs limits
-- **Multi-provider Comparison**: Compare costs across providers
+#### Authentication & Authorization
+- **JWT Tokens**: Secure authentication with expiry
+- **RBAC**: Role-based access control (Admin, Service, ReadOnly)
+- **Permissions**: Fine-grained permission system
+- **Signature Verification**: HMAC signatures for critical operations
 
-### 📊 Performance Analytics
-- **Latency Monitoring**: Track and alert on slow responses
-- **Token Usage**: Monitor prompt/completion token consumption
-- **Error Rate Tracking**: Detect and alert on high error rates
-- **Quality Metrics**: Assess response quality
+#### PII Detection & Protection
+- **Automatic Detection**: Email, phone, SSN, credit cards, IP addresses
+- **Smart Routing**: PII data automatically routed to on-prem backends only
+- **Redaction**: Multiple strategies (MASK, TOKENIZE, REMOVE)
+- **Compliance**: GDPR-ready with full audit trails
 
-### 🌐 Multi-Provider Support
+#### Audit Logging
+- **Complete Audit Trail**: Every request logged with full context
+- **Security Violations**: Tracking of all security events
+- **Performance Metrics**: Latency, cost, tokens for every request
+- **Export**: JSON/CSV export for compliance reporting
 
-**Cloud APIs:**
-- OpenAI (GPT-3.5, GPT-4, etc.)
-- Anthropic (Claude 3 models)
-- Google (Gemini Pro, Gemini 1.5, etc.)
+### 💰 Cost Optimization
 
-**Local LLMs (FREE!):**
-- Ollama (llama2, mistral, etc.)
-- LM Studio
-- LocalAI
+#### Intelligent Routing
+- **Rule Engines First**: Free processing for simple tasks
+- **Cost-Aware Selection**: Choose cheapest backend meeting requirements
+- **Cascade Strategy**: Try cheap → expensive with confidence thresholds
+- **Budget Controls**: Per-client cost limits and quotas
 
-### 🎯 Zero-Code Integration
+#### Processing Hints
 ```python
-from openai import OpenAI
-from collector import OpenAICollector
-
-client = OpenAI()
-monitored = OpenAICollector(client, event_handler=my_handler)
-
-# Normal usage - automatically monitored!
-response = monitored.client.chat.completions.create(...)
+# Developer controls cost vs quality
+ProcessingHint.RULE_ENGINE   # $0, fast, deterministic
+ProcessingHint.MODEL_SMALL   # $, good quality
+ProcessingHint.MODEL_LARGE   # $$$, best quality
+ProcessingHint.HYBRID        # Smart mix
+ProcessingHint.AUTO          # System decides
 ```
+
+### 📊 Observability & Analytics
+
+#### Anomaly Detection
+- **Real-time**: Detect issues as they happen
+- **Multi-level**: Event-level + pattern-level detection
+- **Configurable**: Custom thresholds and rules
+- **Actionable**: Recommended actions for each anomaly type
+
+Detected anomalies:
+- Cost spikes (3x average)
+- Latency spikes (3x average)
+- High error rates (>10%)
+- Security violations (PII leaks, injection attempts)
+- Resource exhaustion
+
+#### Metrics & Dashboards
+- **CLI Dashboard**: Rich terminal UI with tables and charts
+- **Real-time Stats**: Success rate, latency, cost, tokens
+- **Breakdowns**: By provider, model, user, time window
+- **Export**: JSON, CSV for external analysis
 
 ---
 
-## 📖 Documentation
+## 📁 Project Structure
 
-- **[Flow Diagram](FLOW_DIAGRAM.md)** - System architecture and data flow
-- **[Quick Start Guide](poc/QUICKSTART.md)** - 5-minute setup
-- **[Docker Guide](poc/DOCKER_QUICKSTART.md)** - Docker in 2 minutes
-- **[Complete Documentation](poc/README.md)** - Full reference
-- **[API Reference](poc/FINAL_SUMMARY.md)** - All features
-
----
-
-## 🐳 Docker Deployment
-
-### Option 1: Quick Start (Recommended)
-```bash
-cd poc
-make setup
+```
+AI_SIEM/
+│
+├── components/                          # Modular components
+│   ├── application-layer/              # Client interface
+│   │   ├── client.py                   # MPCClient, SimpleMPCClient
+│   │   ├── example_usage.py            # Usage examples
+│   │   ├── README.md                   # Documentation
+│   │   └── requirements.txt            # Dependencies
+│   │
+│   ├── collection-layer/               # MPC Server (gateway)
+│   │   ├── server.py                   # Main server
+│   │   ├── router.py                   # Intelligent routing
+│   │   ├── README.md                   # Documentation
+│   │   └── requirements.txt            # Dependencies
+│   │
+│   ├── processing-layer/               # Processing backends
+│   │   ├── backends.py                 # Backend implementations
+│   │   ├── README.md                   # Documentation
+│   │   └── requirements.txt            # Dependencies
+│   │
+│   ├── storage-layer/                  # Data persistence
+│   │   ├── storage.py                  # EventStorage
+│   │   ├── analyzer.py                 # AnomalyDetector
+│   │   ├── README.md                   # Documentation
+│   │   └── requirements.txt            # Dependencies
+│   │
+│   └── security/                       # Security components
+│       ├── auth.py                     # JWT, RBAC
+│       ├── pii_handler.py              # PII detection/redaction
+│       ├── audit.py                    # Audit logging
+│       ├── README.md                   # Documentation
+│       └── requirements.txt            # Dependencies
+│
+├── shared/                              # Shared modules
+│   ├── schemas/                        # JSON-RPC contracts
+│   │   └── contracts.py
+│   └── models.py                       # Data models
+│
+├── tools/                               # CLI & utilities
+│   ├── cli.py                          # Dashboard
+│   ├── README.md                       # Documentation
+│   └── requirements.txt                # Dependencies
+│
+├── examples/                            # Usage examples
+│   ├── basic_usage.py                  # Simple example
+│   ├── secure_usage.py                 # Security features
+│   ├── batch_processing.py             # Batch processing
+│   └── README.md                       # Examples documentation
+│
+├── README.md                            # This file
+└── requirements.txt                     # All dependencies
 ```
 
-### Option 2: Manual Setup
-```bash
-# Start Ollama
-docker-compose up -d ollama
+### 📖 Component Documentation
 
-# Pull a model
-docker exec -it ai-monitoring-ollama ollama pull llama2
-
-# Run example
-docker exec -it ai-monitoring-poc python local_example.py
-```
-
-### Option 3: Full Stack (with UI)
-```bash
-docker-compose --profile localai --profile ui up -d
-```
-
-Access:
-- **Ollama**: http://localhost:11434
-- **LocalAI**: http://localhost:8080
-- **SQLite UI**: http://localhost:8081
+Each component has detailed README:
+- **[Application Layer](components/application-layer/README.md)** - Client API
+- **[Collection Layer](components/collection-layer/README.md)** - MPC Server
+- **[Processing Layer](components/processing-layer/README.md)** - Backends
+- **[Storage Layer](components/storage-layer/README.md)** - Persistence & analytics
+- **[Security](components/security/README.md)** - Auth, PII, audit
+- **[Tools](tools/README.md)** - CLI dashboard
+- **[Examples](examples/README.md)** - Usage examples
 
 ---
 
 ## 💡 Usage Examples
 
-### Example 1: Monitor Local LLM (Free!)
+### Example 1: Basic Usage
+
 ```python
 import asyncio
-from local_collector import OllamaCollector
-from processor import EventProcessor
-from storage import EventStorage
-
-async def handle_event(event):
-    processor = EventProcessor()
-    storage = EventStorage()
-
-    # Process and store
-    event = processor.process_event(event)
-    storage.store_event(event)
-
-    # Alert on security issues
-    if event.has_pii:
-        print(f"⚠️ PII detected in {event.model}")
-
-    storage.close()
+from components.application_layer.client import SimpleMPCClient
 
 async def main():
-    # No API key needed!
-    collector = OllamaCollector(
-        base_url="http://localhost:11434",
-        event_handler=handle_event
-    )
+    # Create client
+    client = SimpleMPCClient(auth_token="demo-token")
 
-    result = await collector.generate(
-        model="llama2",
-        prompt="Explain AI safety"
-    )
-
-    print(result['response'])
+    # Ask a question
+    response = await client.ask("What is API security?")
+    print(response)
 
 asyncio.run(main())
 ```
 
-### Example 2: Monitor OpenAI with Cost Tracking
+### Example 2: Secure Data Handling
+
 ```python
-from openai import OpenAI
-from collector import OpenAICollector
-from analyzer import AnomalyDetector
+from components.application_layer.client import MPCClient
+from shared.schemas.contracts import SensitivityLevel, ProcessingHint
 
-client = OpenAI()
-detector = AnomalyDetector()
+async def main():
+    client = MPCClient()
 
-async def handle_event(event):
-    # Detect anomalies
-    anomalies = detector.analyze_event(event, [])
+    # Handle PII - automatically routed to private backend
+    result = await client.process(
+        prompt="My email is john@example.com",
+        sensitivity=SensitivityLevel.PII,
+        processing_hint=ProcessingHint.MODEL_PRIVATE,
+        enable_pii_detection=True
+    )
 
-    for anomaly in anomalies:
-        if anomaly.anomaly_type == 'high_cost':
-            print(f"💰 High cost alert: ${event.cost_usd}")
-
-monitored = OpenAICollector(client, event_handler=handle_event)
-
-# Use normally - costs tracked automatically
-response = monitored.client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Hello"}]
-)
+    print(result['response'])
+    print(f"Security flags: {result['security_flags']}")
 ```
 
-### Example 3: Multi-Provider Comparison
+### Example 3: Cost Optimization
+
+```python
+async def main():
+    client = MPCClient()
+
+    # Use rule engine (free) for simple task
+    result = await client.process(
+        prompt="Classify: ERROR message",
+        processing_hint=ProcessingHint.RULE_ENGINE
+    )
+    print(f"Cost: ${result['cost']}")  # $0.0000
+
+    # Use LLM only when needed
+    result = await client.process(
+        prompt="Explain the architecture of microservices",
+        processing_hint=ProcessingHint.MODEL_LARGE
+    )
+    print(f"Cost: ${result['cost']}")  # $0.0234
+```
+
+---
+
+## 🚀 Getting Started
+
+### Installation
+
 ```bash
-# Compare all available providers
-python test_all_llms.py
+# Clone repository
+git clone https://github.com/krzysztofgryga/AI_SIEM.git
+cd AI_SIEM
+
+# Install all dependencies
+pip install -r requirements.txt
+
+# Or install per component
+pip install -r components/application-layer/requirements.txt
+pip install -r components/collection-layer/requirements.txt
+# ...
 ```
 
-Output:
-```
-LLM Provider Comparison
-┏━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
-┃ Provider ┃ Model      ┃ Status ┃ Latency ┃ Tokens┃ Cost   ┃
-┡━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
-│ ollama   │ llama2     │   ✓    │  1234ms │   142 │ $0.0000│
-│ openai   │ gpt-3.5    │   ✓    │   456ms │   128 │ $0.0002│
-│ anthropic│ claude-3   │   ✓    │   789ms │   156 │ $0.0003│
-└──────────┴────────────┴────────┴─────────┴───────┴────────┘
-```
-
----
-
-## 🛠️ Makefile Commands
+### Run Examples
 
 ```bash
-# Setup & Start
-make setup           # Interactive setup (START HERE!)
-make up              # Start services
-make up-full         # Start with LocalAI + UI
+# Basic usage
+python examples/basic_usage.py
 
-# Testing
-make test            # Run example
-make cli             # Open dashboard
-make stats           # Show statistics
+# Secure usage (PII handling)
+python examples/secure_usage.py
 
-# Models (Ollama)
-make pull-llama2     # Download llama2 (3.8GB)
-make pull-tinyllama  # Download tinyllama (637MB, fast)
-make pull-mistral    # Download mistral (4.1GB, best)
-make list-models     # List downloaded models
-
-# Management
-make logs            # View logs
-make shell           # Enter container
-make down            # Stop all services
-make clean           # Clean up (keep data)
-make clean-all       # Clean everything (delete data!)
-
-# Utilities
-make backup          # Backup database
-make help            # Show all commands
+# Batch processing
+python examples/batch_processing.py
 ```
 
----
+### View Dashboard
 
-## 📊 Detected Anomalies
+```bash
+# CLI dashboard
+python tools/cli.py
 
-| Anomaly Type | Threshold | Severity | Auto Action |
-|--------------|-----------|----------|-------------|
-| High Cost | > $0.50/request | HIGH | Alert |
-| Cost Spike | 3x average | HIGH | Alert + Log |
-| High Latency | > 5000ms | MEDIUM | Monitor |
-| Latency Spike | 3x average | MEDIUM | Monitor |
-| Prompt Injection | Pattern match | **CRITICAL** | **Block + Alert** |
-| PII Detected | Regex match | HIGH | Alert + Flag |
-| High Error Rate | > 10% | **CRITICAL** | Alert |
-| High Token Usage | > 8000 tokens | MEDIUM | Review |
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     AI Applications                      │
-│  (OpenAI, Anthropic, Ollama, LM Studio, LocalAI)        │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Collectors Layer                      │
-│  • OpenAICollector    • AnthropicCollector              │
-│  • OllamaCollector    • LMStudioCollector               │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Processing Layer                       │
-│  • EventProcessor  (PII, Injection Detection)           │
-│  • EventAggregator (Metrics Calculation)                │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Analysis Layer                        │
-│  • AnomalyDetector (Threshold + Spike Detection)        │
-│  • RiskScorer      (Multi-factor Assessment)            │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Storage Layer                         │
-│  • EventStorage    (SQLite Database)                    │
-│  • Indexed Queries (Fast Retrieval)                     │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Presentation Layer                      │
-│  • CLI Dashboard   • Statistics Reports                 │
-│  • Real-time Alerts • Export Capabilities               │
-└─────────────────────────────────────────────────────────┘
+# Or specific commands
+python tools/cli.py stats      # Statistics
+python tools/cli.py events 20  # Recent events
+python tools/cli.py anomalies  # Anomalies
 ```
 
 ---
 
 ## 🔧 Configuration
 
-### Environment Variables (.env)
+### Environment Variables
+
 ```bash
-# Local LLM endpoints (NO API KEYS NEEDED!)
-OLLAMA_HOST=http://localhost:11434
-LM_STUDIO_HOST=http://localhost:1234
-LOCALAI_HOST=http://localhost:8080
+# Authentication secrets (use KMS/Vault in production)
+export JWT_SECRET="your-jwt-secret-here"
+export HMAC_SECRET="your-hmac-secret-here"
 
-# Cloud APIs (optional)
-OPENAI_API_KEY=sk-your-key-here
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Database
+export DATABASE_PATH="ai_monitoring.db"
 
-# Settings
-DATABASE_PATH=ai_monitoring.db
-DEFAULT_USER_ID=local_user
-LOG_LEVEL=INFO
+# Optional: LLM API keys (for cloud backends)
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GOOGLE_API_KEY="..."
 ```
 
 ### Anomaly Detection Config
+
 ```python
+from components.storage_layer.analyzer import AnomalyDetector
+
 detector = AnomalyDetector(config={
-    'cost_threshold_usd': 0.5,
-    'latency_threshold_ms': 5000,
-    'error_rate_threshold': 0.1,
-    'token_threshold': 8000,
-    'spike_multiplier': 3.0
+    'cost_threshold_usd': 0.5,       # Alert when cost > $0.50
+    'latency_threshold_ms': 5000,    # Alert when latency > 5s
+    'error_rate_threshold': 0.1,     # Alert when errors > 10%
+    'token_threshold': 8000,         # Alert when tokens > 8000
+    'spike_multiplier': 3.0          # Alert when 3x higher than average
 })
+```
+
+---
+
+## 📊 CLI Dashboard
+
+```bash
+$ python tools/cli.py
+
+╔════════════════════════════════════════╗
+║   AI Monitoring Dashboard CLI          ║
+╚════════════════════════════════════════╝
+
+📊 Statistics (Last 24 Hours)
+
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Metric           ┃    Value ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ Total Events     │       47 │
+│ Successful       │       45 │
+│ Failed           │        2 │
+│ Success Rate     │    95.7% │
+│ Total Tokens     │    8,234 │
+│ Total Cost       │ $0.0421  │
+│ Avg Latency      │    723ms │
+│ PII Events       │        3 │
+│ Injection        │        1 │
+│ Anomalies        │        7 │
+└──────────────────┴──────────┘
+```
+
+---
+
+## 🔒 Security Best Practices
+
+### 1. Never Use Direct Ingest
+```python
+# ❌ DON'T: Direct access to LLM APIs
+from openai import OpenAI
+client = OpenAI()
+response = client.chat.completions.create(...)  # No auth, no PII check, no audit
+
+# ✅ DO: Use MPC Client (gateway)
+from components.application_layer.client import SimpleMPCClient
+client = SimpleMPCClient(auth_token="...")
+response = await client.ask("...")  # Authenticated, PII-checked, audited
+```
+
+### 2. Handle PII Correctly
+```python
+# Always detect and route PII to private backends
+result = await client.process(
+    prompt="Email: john@example.com",
+    sensitivity=SensitivityLevel.PII,
+    processing_hint=ProcessingHint.MODEL_PRIVATE,  # MUST be private!
+    enable_pii_detection=True
+)
+```
+
+### 3. Use Proper Authentication
+```python
+from components.security.auth import AccessControl
+
+# Create tokens with appropriate permissions
+ac = AccessControl(jwt_secret="...", hmac_secret="...")
+token = ac.create_service_token(
+    client_id="my-app",
+    permissions=[Permission.READ, Permission.EXECUTE]
+)
+
+client = MPCClient(auth_token=token)
+```
+
+---
+
+## 🛠️ Development
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run specific component tests
+pytest components/collection-layer/
+pytest components/security/
+```
+
+### Adding Custom Backend
+
+```python
+from components.processing_layer.backends import ProcessingBackend
+
+class MyBackend(ProcessingBackend):
+    def __init__(self):
+        super().__init__(
+            backend_id="custom:my-backend",
+            name="My Custom Backend",
+            capabilities=[CapabilityType.TEXT_GENERATION],
+            max_sensitivity=SensitivityLevel.INTERNAL
+        )
+
+    async def process(self, prompt: str, **kwargs):
+        # Your processing logic
+        return {
+            "response": "...",
+            "tokens": 100,
+            "cost": 0.001
+        }
+
+# Register
+from components.processing_layer.backends import get_backend_registry
+registry = get_backend_registry()
+registry.register(MyBackend())
 ```
 
 ---
 
 ## 📈 Roadmap
 
-### ✅ Current (POC)
-- [x] Multi-provider support (OpenAI, Anthropic, Ollama, etc.)
-- [x] Real-time monitoring
-- [x] PII & injection detection
-- [x] Cost tracking
-- [x] SQLite storage
+### ✅ Current (v1.0)
+- [x] 3-layer architecture
+- [x] MPC Server gateway
+- [x] JWT authentication & RBAC
+- [x] PII detection & routing
+- [x] Intelligent backend selection
+- [x] Anomaly detection
 - [x] CLI dashboard
-- [x] Docker deployment
+- [x] Audit logging
+- [x] **Removed direct ingest**
 
-### 🚧 Next Phase
+### 🚧 Next (v1.1)
+- [ ] HTTP/REST API for MPC Server
+- [ ] Web dashboard (React/Streamlit)
 - [ ] Elasticsearch for scalable storage
 - [ ] Kafka for event streaming
-- [ ] ML-based anomaly detection
-- [ ] Web dashboard (Grafana/Streamlit)
-- [ ] Slack/PagerDuty integration
-- [ ] GDPR compliance checks
-- [ ] Distributed tracing
+- [ ] Prometheus metrics export
 - [ ] Kubernetes deployment
 
-### 🔮 Future
-- [ ] Predictive analytics
-- [ ] Auto-remediation
-- [ ] Multi-tenant support
+### 🔮 Future (v2.0)
+- [ ] ML-based anomaly detection
+- [ ] Distributed tracing (OpenTelemetry)
+- [ ] Multi-tenancy support
 - [ ] SaaS offering
+- [ ] Auto-remediation
+- [ ] Predictive analytics
 
 ---
 
@@ -372,9 +575,12 @@ Contributions welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Follow the modular architecture
+4. Add tests for new features
+5. Update documentation
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
 ---
 
@@ -384,31 +590,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🆘 Support
-
-- **Documentation**: [poc/README.md](poc/README.md)
-- **Quick Start**: [poc/QUICKSTART.md](poc/QUICKSTART.md)
-- **Docker Guide**: [poc/DOCKER_README.md](poc/DOCKER_README.md)
-- **Issues**: [GitHub Issues](https://github.com/krzysztofgryga/AI_SIEM/issues)
-
----
-
 ## 🙏 Acknowledgments
 
-- **Ollama** - Amazing local LLM runtime
-- **LM Studio** - Great local LLM UI
-- **LocalAI** - OpenAI-compatible local server
-- **Rich** - Beautiful terminal output
-- **Pydantic** - Data validation
+- **Architecture inspiration**: Kubernetes, Istio, API Gateways
+- **Security best practices**: OWASP, NIST guidelines
+- **LLM providers**: OpenAI, Anthropic, Google
+- **Local LLMs**: Ollama, LM Studio
+- **Python libraries**: Pydantic, Rich, PyJWT
 
 ---
 
-## ⭐ Star History
+## 📞 Support
 
-If this project helped you, please consider giving it a star! ⭐
+- **Documentation**: See component READMEs in `components/*/README.md`
+- **Examples**: See `examples/README.md`
+- **Issues**: [GitHub Issues](https://github.com/krzysztofgryga/AI_SIEM/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/krzysztofgryga/AI_SIEM/discussions)
 
 ---
 
-**Built with ❤️ for AI safety and transparency**
+**Built with ❤️ for AI safety, security, and transparency**
 
-🚀 **Get started now**: `cd poc && make setup`
+🚀 **Get started now**: `python examples/basic_usage.py`
